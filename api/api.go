@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var users []types.User
+
 func getUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(&types.User{})
 
@@ -26,65 +28,59 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateUser(w http.ResponseWriter, r *http.Request) {
-	upduser := []struct {
-		name     string
-		user     types.User
-		expected error
-	}{
-		{
-			user: types.User{
-				Name:     "test-update",
-				Password: "123",
-			},
-		},
-	}
-	params := mux.Vars(r)
-	for index, item := range upduser {
-		if item.user.Name == params["name"] {
-			upduser = append(upduser[:index], upduser[index+1:]...)
-			break
+	var tuser types.User
+	users = append(users, types.User{Id: "1", Name: "test-tudo", Password: "56983"})
+	err := json.NewDecoder(r.Body).Decode(&tuser)
+	for index, item := range users {
+		if item.Id == tuser.Id {
+			users = append(users[:index], users[index+1:]...)
+			_ = json.NewDecoder(r.Body).Decode(&tuser)
+			users = append(users, tuser)
+			json.NewEncoder(w).Encode(tuser)
 		}
-		json.NewEncoder(w).Encode(upduser)
+		if err != nil {
+			fmt.Println(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
-	var updateUser types.User
-	_ = json.NewDecoder(r.Body).Decode(&updateUser)
-	updateUser.Name = params["name"]
-	upduser = append(upduser)
-	json.NewEncoder(w).Encode(upduser)
-	w.WriteHeader(301)
+	if tuser.Name == users[0].Name {
+		fmt.Printf("Usuario Atualizado!")
+		w.WriteHeader(http.StatusOK)
+	} else {
+		fmt.Printf("Error")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {
-	deluser := []struct {
-		name     string
-		user     types.User
-		expected error
-	}{
-		{
-			user: types.User{
-				Name:     "test-delete",
-				Password: "123",
-			},
-		},
-	}
-	params := mux.Vars(r)
-	for index, item := range deluser {
-		if item.user.Name == params["name"] {
-			deluser = append(deluser[:index], deluser[index+1:]...)
+	var duser types.User
+	users = append(users, types.User{Id: "1", Name: "test-tudo", Password: "12456"})
+	//params := mux.Vars(r)
+	err := json.NewDecoder(r.Body).Decode(&duser)
+	for index, item := range users {
+		if item.Id == duser.Id {
+			users = append(users[:index], users[index+1:]...)
 			break
 		}
-		json.NewEncoder(w).Encode(deluser)
 	}
-	//fmt.Printf("%v", deleteUser)
-	w.WriteHeader(http.StatusMovedPermanently)
+	json.NewEncoder(w).Encode(duser)
+	if err != nil {
+		fmt.Println(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Printf("%v :", users)
+	if users == nil {
+		fmt.Printf("User Deleted!")
+	}
+	w.WriteHeader(301)
 }
 
 func New() *mux.Router {
 	router := mux.NewRouter()
-
 	router.HandleFunc("/users", getUser).Methods("GET")
 	router.HandleFunc("/users", createUser).Methods("POST")
-	router.HandleFunc("/users", updateUser).Methods("PUT")
+	router.HandleFunc("/users/{id}", updateUser).Methods("PUT")
 	router.HandleFunc("/users", deleteUser).Methods("DELETE")
 
 	return router
