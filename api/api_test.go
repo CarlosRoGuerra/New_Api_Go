@@ -81,7 +81,6 @@ func TestGetUser(t *testing.T) {
 	for _, testcase := range tt {
 		resp, err := ts.Client().Post(ts.URL, "application/json", testcase.body)
 		testcase.assertion(t, resp, testcase.expectedUser, err)
-
 	}
 }
 
@@ -104,17 +103,30 @@ func TestUpdateUser(t *testing.T) {
 			userId: "123",
 			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
 				assert.NoError(t, err)
-				var user types.User
-				err = json.NewDecoder(resp.Body).Decode(&user)
+				var newuser types.User
+				err = json.NewDecoder(resp.Body).Decode(&newuser)
 				assert.NoError(t, err)
-				assert.Equal(t, expectedUser, user)
-				assert.Equal(t, 200, resp.StatusCode)
+				assert.Equal(t, expectedUser, newuser)
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+			},
+		},
+		{
+			name: "When not found id",
+			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
+				assert.NoError(t, err)
+				var newuser types.User
+				err = json.NewDecoder(resp.Body).Decode(&newuser)
+				assert.Error(t, err, "EOF")
+				assert.Equal(t, expectedUser, newuser)
+				assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 			},
 		},
 	}
 	for _, testcase := range tt {
 		user := types.User{
-			Id: testcase.userId,
+			Id:       testcase.userId,
+			Name:     "carlos-test",
+			Password: "567",
 		}
 		bbytes, err := json.Marshal(user)
 		assert.NoError(t, err)
@@ -131,17 +143,26 @@ func TestCreateUser(t *testing.T) {
 	var tt = []struct {
 		name         string
 		userId       string
+		body         *bytes.Buffer
 		expectedUser types.User
 		assertion    func(*testing.T, *http.Response, types.User, error)
 	}{
 		{
-			name: "when user is create",
+			name: "when user is created",
 			expectedUser: types.User{
 				Id:       "123",
-				Name:     "clemente",
+				Name:     "seila",
 				Password: "456",
 			},
-			userId: "123",
+			body: func() *bytes.Buffer {
+				user := types.User{
+					Id:       "123",
+					Name:     "seila",
+					Password: "456",
+				}
+				bbytes, _ := json.Marshal(user)
+				return bytes.NewBuffer(bbytes)
+			}(),
 			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
 				assert.NoError(t, err)
 				var user types.User
@@ -152,24 +173,23 @@ func TestCreateUser(t *testing.T) {
 			},
 		},
 		{
-			name:         "when user is empty",
-			expectedUser: types.User{},
-			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
+			name: "when server receive gibberish",
+			body: func() *bytes.Buffer {
+				user := "ggff"
+				bbytes, _ := json.Marshal(user)
+				return bytes.NewBuffer(bbytes)
+			}(),
+			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, e error) {
+				assert.NoError(t, e)
+				body, err := ioutil.ReadAll(resp.Body)
 				assert.NoError(t, err)
-				var user types.User
-				err = json.NewDecoder(resp.Body).Decode(&user)
-				assert.Error(t, err)
-				assert.Equal(t, expectedUser, user)
-				assert.Equal(t, 404, resp.StatusCode)
+				assert.Equal(t, "json: cannot unmarshal string into Go value of type types.User\n", string(body))
+				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 			},
 		},
 	}
 	for _, testcase := range tt {
-		bbytes, err := json.Marshal(testcase.expectedUser)
-		assert.NoError(t, err)
-		bb := bytes.NewBuffer(bbytes)
-		resp, err := tp.Client().Post(tp.URL, "application/json", bb)
-		assert.Equal(t, 200, resp.StatusCode)
+		resp, err := tp.Client().Post(tp.URL, "application/json", testcase.body)
 		testcase.assertion(t, resp, testcase.expectedUser, err)
 	}
 }

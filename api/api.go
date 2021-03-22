@@ -38,7 +38,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	var user types.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		fmt.Println(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	json.NewEncoder(w).Encode(user)
@@ -48,6 +48,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 func updateUser(w http.ResponseWriter, r *http.Request) {
 	users := []types.User{
 		{Id: "123", Name: "seila", Password: "456"},
+		{Id: "984", Name: "seila", Password: "456"},
 	}
 	var user types.User
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -57,19 +58,11 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	for index, item := range users {
 		if item.Id == user.Id {
 			users = append(users[:index], users[index+1:]...)
-
+			json.NewEncoder(w).Encode(item)
+			return
 		}
-		json.NewEncoder(w).Encode(users)
+		w.WriteHeader(http.StatusNotFound)
 	}
-	var newuser types.User
-	_ = json.NewDecoder(r.Body).Decode(&newuser)
-	newuser.Id = user.Id
-	newuser.Name = user.Name
-	newuser.Password = user.Password
-	users = append(users, newuser)
-	json.NewEncoder(w).Encode(users)
-	w.WriteHeader(http.StatusOK)
-
 }
 
 func deleteUser(w http.ResponseWriter, r *http.Request) {

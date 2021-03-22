@@ -3,3 +3,6 @@ run: build
 
 build: 
 	go build -o bin/api cmd/main.go
+
+test: 
+	go test ./...
