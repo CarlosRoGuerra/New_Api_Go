@@ -90,6 +90,7 @@ func TestUpdateUser(t *testing.T) {
 	var tt = []struct {
 		name         string
 		userId       string
+		body         *bytes.Buffer
 		expectedUser types.User
 		assertion    func(*testing.T, *http.Response, types.User, error)
 	}{
@@ -100,40 +101,42 @@ func TestUpdateUser(t *testing.T) {
 				Name:     "seila",
 				Password: "456",
 			},
-			userId: "123",
+			body: func() *bytes.Buffer {
+				user := types.User{
+					Id:       "123",
+					Name:     "seila",
+					Password: "456",
+				}
+				bbytes, _ := json.Marshal(user)
+				return bytes.NewBuffer(bbytes)
+			}(),
 			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
 				assert.NoError(t, err)
-				var newuser types.User
-				err = json.NewDecoder(resp.Body).Decode(&newuser)
+				var user types.User
+				err = json.NewDecoder(resp.Body).Decode(&user)
 				assert.NoError(t, err)
-				assert.Equal(t, expectedUser, newuser)
+				assert.Equal(t, expectedUser, user)
 				assert.Equal(t, http.StatusOK, resp.StatusCode)
 			},
 		},
 		{
 			name: "When not found id",
-			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
+			body: func() *bytes.Buffer {
+				user := "000"
+				bbytes, _ := json.Marshal(user)
+				return bytes.NewBuffer(bbytes)
+			}(),
+			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, e error) {
+				assert.NoError(t, e)
+				_, err := ioutil.ReadAll(resp.Body)
 				assert.NoError(t, err)
-				var newuser types.User
-				err = json.NewDecoder(resp.Body).Decode(&newuser)
-				assert.Error(t, err, "EOF")
-				assert.Equal(t, expectedUser, newuser)
 				assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 			},
 		},
 	}
 	for _, testcase := range tt {
-		user := types.User{
-			Id:       testcase.userId,
-			Name:     "carlos-test",
-			Password: "567",
-		}
-		bbytes, err := json.Marshal(user)
-		assert.NoError(t, err)
-		bb := bytes.NewBuffer(bbytes)
-		resp, err := ts.Client().Post(ts.URL, "application/json", bb)
+		resp, err := ts.Client().Post(ts.URL, "application/json", testcase.body)
 		testcase.assertion(t, resp, testcase.expectedUser, err)
-
 	}
 }
 
@@ -221,25 +224,6 @@ func TestDeleteUser(t *testing.T) {
 				assert.Error(t, err)
 				assert.Equal(t, expectedUser, user)
 				assert.Equal(t, 200, resp.StatusCode)
-			},
-		},
-		{
-			name:         "when user not deleted",
-			expectedUser: types.User{},
-			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
-				assert.NoError(t, err)
-				var user types.User
-				err = json.NewDecoder(resp.Body).Decode(&user)
-				assert.NoError(t, err)
-				assert.Equal(t, expectedUser, user)
-				assert.Equal(t, 404, resp.StatusCode)
-			},
-		},
-		{
-			name: "when server receive gibberish",
-			body: nil,
-			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
-				assert.NoError(t, err)
 			},
 		},
 	}
