@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/CarlosRoGuerra/New_Api_Go/v1/internal/database"
 	"github.com/CarlosRoGuerra/New_Api_Go/v1/pkg/types"
 	"github.com/gorilla/mux"
 )
 
-func getUser(w http.ResponseWriter, r *http.Request) {
-	users := []types.User{
-		{Id: "123", Name: "seila", Password: "456"},
-		{Id: "456", Name: "test", Password: "678"},
+func (a *Api) getUser(w http.ResponseWriter, r *http.Request) {
+	users, err := a.Client.GetUsers("users")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	var user types.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	err = json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -30,13 +32,14 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func createUser(w http.ResponseWriter, r *http.Request) {
-	// users := []types.User{
-	// 	{Id: "123", Name: "seila", Password: "456"},
-	// 	{Id: "456", Name: "test", Password: "678"},
-	// }
-	var user types.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+func (a *Api) createUser(w http.ResponseWriter, r *http.Request) {
+	user, err := a.Client.CreateUser("users")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	//var user types.User
+	err = json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -45,13 +48,14 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func updateUser(w http.ResponseWriter, r *http.Request) {
-	users := []types.User{
-		{Id: "123", Name: "seila", Password: "456"},
-		{Id: "984", Name: "seila", Password: "456"},
+func (a *Api) updateUser(w http.ResponseWriter, r *http.Request) {
+	users, err := a.Client.GetUsers("users")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	var user types.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	err = json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		fmt.Println(w, err.Error(), http.StatusBadRequest)
 	}
@@ -65,12 +69,14 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func deleteUser(w http.ResponseWriter, r *http.Request) {
-	users := []types.User{
-		{Id: "123", Name: "seila", Password: "456"},
+func (a *Api) deleteUser(w http.ResponseWriter, r *http.Request) {
+	users, err := a.Client.GetUsers("users")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	var user types.User
-	err := json.NewDecoder(r.Body).Decode(&user)
+	err = json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		fmt.Println(w, err.Error(), http.StatusBadRequest)
 	}
@@ -84,12 +90,22 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "user not found", http.StatusNotFound)
 }
 
-func New() *mux.Router {
-	router := mux.NewRouter()
-	router.HandleFunc("/users", getUser).Methods("GET")
-	router.HandleFunc("/users", createUser).Methods("POST")
-	router.HandleFunc("/users/{id}", updateUser).Methods("PUT")
-	router.HandleFunc("/users", deleteUser).Methods("DELETE")
+type Api struct {
+	Router *mux.Router
+	Client database.DatabaseClient
+}
 
-	return router
+func New() Api {
+	var a Api
+	router := mux.NewRouter()
+	a = Api{Router: router}
+	router.HandleFunc("/users", a.getUser).Methods("GET")
+	router.HandleFunc("/users", a.createUser).Methods("POST")
+	router.HandleFunc("/users/{id}", a.updateUser).Methods("PUT")
+	router.HandleFunc("/users", a.deleteUser).Methods("DELETE")
+	router.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "WORKING")
+	}).Methods("GET")
+	return a
 }
