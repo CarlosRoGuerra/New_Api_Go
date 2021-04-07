@@ -21,7 +21,7 @@ func TestGetUser(t *testing.T) {
 			return []types.User{
 				{
 					Id:       "123",
-					Name:     "seila",
+					Name:     "test",
 					Password: "456",
 				},
 			}, nil
@@ -41,7 +41,7 @@ func TestGetUser(t *testing.T) {
 			name: "when user is found",
 			expectedUser: types.User{
 				Id:       "123",
-				Name:     "seila",
+				Name:     "test",
 				Password: "456",
 			},
 			body: func() *bytes.Buffer {
@@ -107,7 +107,7 @@ func TestUpdateUser(t *testing.T) {
 			return []types.User{
 				{
 					Id:       "123",
-					Name:     "seila",
+					Name:     "test",
 					Password: "456",
 				},
 			}, nil
@@ -127,13 +127,13 @@ func TestUpdateUser(t *testing.T) {
 			name: "when user is updated",
 			expectedUser: types.User{
 				Id:       "123",
-				Name:     "seila",
+				Name:     "test",
 				Password: "456",
 			},
 			body: func() *bytes.Buffer {
 				user := types.User{
 					Id:       "123",
-					Name:     "seila",
+					Name:     "test",
 					Password: "456",
 				}
 				bbytes, _ := json.Marshal(user)
@@ -175,7 +175,7 @@ func TestCreateUser(t *testing.T) {
 		OnCreateUser: func(tableName string) (types.User, error) {
 			return types.User{
 				Id:       "123",
-				Name:     "seila",
+				Name:     "test",
 				Password: "456",
 			}, nil
 		},
@@ -193,13 +193,13 @@ func TestCreateUser(t *testing.T) {
 			name: "when user is created",
 			expectedUser: types.User{
 				Id:       "123",
-				Name:     "seila",
+				Name:     "test",
 				Password: "456",
 			},
 			body: func() *bytes.Buffer {
 				user := types.User{
 					Id:       "123",
-					Name:     "seila",
+					Name:     "test",
 					Password: "456",
 				}
 				bbytes, _ := json.Marshal(user)
@@ -243,7 +243,7 @@ func TestDeleteUser(t *testing.T) {
 			return []types.User{
 				{
 					Id:       "123",
-					Name:     "seila",
+					Name:     "test",
 					Password: "456",
 				},
 			}, nil
@@ -276,6 +276,24 @@ func TestDeleteUser(t *testing.T) {
 				assert.Error(t, err)
 				assert.Equal(t, expectedUser, user)
 				assert.Equal(t, 200, resp.StatusCode)
+			},
+		},
+		{
+			name:         "when user is not found",
+			expectedUser: types.User{},
+			body: func() *bytes.Buffer {
+				user := types.User{
+					Id: "345",
+				}
+				bbytes, _ := json.Marshal(user)
+				return bytes.NewBuffer(bbytes)
+			}(),
+			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
+				assert.NoError(t, err)
+				var user types.User
+				err = json.NewDecoder(resp.Body).Decode(&user)
+				assert.Error(t, err)
+				assert.Equal(t, 404, resp.StatusCode)
 			},
 		},
 	}
