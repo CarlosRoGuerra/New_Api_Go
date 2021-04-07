@@ -57,7 +57,7 @@ func TestGetUser(t *testing.T) {
 				err = json.NewDecoder(resp.Body).Decode(&user)
 				assert.NoError(t, err)
 				assert.Equal(t, expectedUser, user)
-				assert.Equal(t, 200, resp.StatusCode)
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
 			},
 		},
 		{
@@ -75,7 +75,7 @@ func TestGetUser(t *testing.T) {
 				err = json.NewDecoder(resp.Body).Decode(&user)
 				assert.Error(t, err, "EOF")
 				assert.Equal(t, expectedUser, user)
-				assert.Equal(t, 404, resp.StatusCode)
+				assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 			},
 		},
 		{
@@ -211,7 +211,7 @@ func TestCreateUser(t *testing.T) {
 				err = json.NewDecoder(resp.Body).Decode(&user)
 				assert.NoError(t, err)
 				assert.Equal(t, expectedUser, user)
-				assert.Equal(t, 200, resp.StatusCode)
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
 			},
 		},
 		{
@@ -275,7 +275,7 @@ func TestDeleteUser(t *testing.T) {
 				err = json.NewDecoder(resp.Body).Decode(&user)
 				assert.Error(t, err)
 				assert.Equal(t, expectedUser, user)
-				assert.Equal(t, 200, resp.StatusCode)
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
 			},
 		},
 		{
@@ -293,7 +293,7 @@ func TestDeleteUser(t *testing.T) {
 				var user types.User
 				err = json.NewDecoder(resp.Body).Decode(&user)
 				assert.Error(t, err)
-				assert.Equal(t, 404, resp.StatusCode)
+				assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 			},
 		},
 	}
