@@ -97,8 +97,13 @@ type Api struct {
 
 func New() Api {
 	var a Api
+	a.buildRouter()
+	a.Client = &database.MongoClient{}
+	return a
+}
+
+func (a *Api) buildRouter() {
 	router := mux.NewRouter()
-	a = Api{Router: router}
 	router.HandleFunc("/users", a.getUser).Methods("GET")
 	router.HandleFunc("/users", a.createUser).Methods("POST")
 	router.HandleFunc("/users/{id}", a.updateUser).Methods("PUT")
@@ -107,5 +112,7 @@ func New() Api {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "WORKING")
 	}).Methods("GET")
-	return a
+
+	a.Router = router
+
 }
