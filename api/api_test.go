@@ -171,11 +171,11 @@ func TestUpdateUser(t *testing.T) {
 
 func TestCreateUser(t *testing.T) {
 	var a *Api
-	a = &Api{Router: mux.NewRouter(), Client: &database.MockClient{
-		OnCreateUser: func(tableName string) (types.User, error) {
+	a = &Api{Router: mux.NewRouter(), Client: &database.MongoClient{
+		OnInsertUser: func(tableName string) (types.User, error) {
 			return types.User{
 				Id:       "123",
-				Name:     "test",
+				Name:     "Carlos",
 				Password: "456",
 			}, nil
 		},
