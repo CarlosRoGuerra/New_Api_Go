@@ -97,9 +97,7 @@ type Api struct {
 
 func New() Api {
 	var a Api
-	a.Client = &database.MongoClient{OnInsertUser: func(collection string) (types.User, error) {
-		return types.User{Id: "01", Name: "Carlos", Password: "1234"}, nil
-	}}
+	a.Client = &database.MongoClient{}
 	a.buildRouter()
 	return a
 }

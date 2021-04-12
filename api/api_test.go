@@ -15,8 +15,7 @@ import (
 )
 
 func TestGetUser(t *testing.T) {
-	var a *Api
-	a = &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+	a := &Api{Router: mux.NewRouter(), Client: &database.MockClient{
 		OnGetUsers: func(tableName string) ([]types.User, error) {
 			return []types.User{
 				{
@@ -101,8 +100,7 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	var a *Api
-	a = &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+	a := &Api{Router: mux.NewRouter(), Client: &database.MockClient{
 		OnGetUsers: func(tableName string) ([]types.User, error) {
 			return []types.User{
 				{
@@ -170,16 +168,17 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
-	var a *Api
-	a = &Api{Router: mux.NewRouter(), Client: &database.MongoClient{
-		OnInsertUser: func(tableName string) (types.User, error) {
+	a := &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+		OnCreateUser: func(tableName string) (types.User, error) {
 			return types.User{
 				Id:       "123",
 				Name:     "Carlos",
 				Password: "456",
 			}, nil
 		},
-	}}
+	},
+	}
+
 	tp := httptest.NewServer(http.HandlerFunc(a.createUser))
 	defer tp.Close()
 	var tt = []struct {
@@ -237,8 +236,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	var a *Api
-	a = &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+	a := &Api{Router: mux.NewRouter(), Client: &database.MockClient{
 		OnGetUsers: func(tableName string) ([]types.User, error) {
 			return []types.User{
 				{
