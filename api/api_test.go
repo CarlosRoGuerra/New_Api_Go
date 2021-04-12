@@ -168,16 +168,16 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
-	a := &Api{Router: mux.NewRouter(), Client: &database.MockClient{
-		OnCreateUser: func(tableName string) (types.User, error) {
+	mockClient := &database.MockClient{
+		OnCreateUser: func(tableName string, user types.User) (types.User, error) {
 			return types.User{
 				Id:       "123",
-				Name:     "Carlos",
+				Name:     "test",
 				Password: "456",
 			}, nil
 		},
-	},
 	}
+	a := &Api{Router: mux.NewRouter(), Client: mockClient}
 
 	tp := httptest.NewServer(http.HandlerFunc(a.createUser))
 	defer tp.Close()
@@ -210,7 +210,7 @@ func TestCreateUser(t *testing.T) {
 				err = json.NewDecoder(resp.Body).Decode(&user)
 				assert.NoError(t, err)
 				assert.Equal(t, expectedUser, user)
-				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				assert.Equal(t, http.StatusCreated, resp.StatusCode)
 			},
 		},
 		{
@@ -245,7 +245,6 @@ func TestDeleteUser(t *testing.T) {
 					Password: "456",
 				},
 			}, nil
-
 		},
 	}}
 	tp := httptest.NewServer(http.HandlerFunc(a.deleteUser))

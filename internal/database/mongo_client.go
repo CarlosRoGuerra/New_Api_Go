@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/CarlosRoGuerra/New_Api_Go/v1/pkg/types"
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,50 +10,71 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const database = "carlos"
+const mongohost = "mongodb://localhost:27017"
+
 type MongoClient struct {
-	Collection string
-	Database   string
+	client *mongo.Client
 }
 
-func (m *MongoClient) CreateUser(collection string) (types.User, error) {
-	user := types.User{Id: "01", Name: "Carlos", Password: "456"}
-	ctx := context.Background()
-	coll := GetCollection("users")
-	_, nil := coll.InsertOne(ctx, user)
-	return types.User{}, nil
-}
-
-func (m *MongoClient) GetUsers(collection string) ([]types.User, error) {
-	var users types.User
-	var err error
-	filter := bson.D{}
-	ctx := context.Background()
-	cur, err := GetCollection("users").Find(ctx, filter)
+func NewDefaultMongoClient() (*MongoClient, error) {
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongohost))
 	if err != nil {
 		return nil, err
 	}
-	for cur.Next(ctx) {
-		err = cur.Decode(&users)
+
+	return &MongoClient{client: client}, nil
+}
+
+func (m *MongoClient) CreateUser(collection string, user types.User) (types.User, error) {
+	ctx := context.Background()
+	coll, err := m.getCollection(collection)
+	if err != nil {
+		return types.User{}, err
+	}
+	_, err = coll.InsertOne(ctx, user)
+	if err != nil {
+		return types.User{}, err
+	}
+	return user, nil
+}
+
+func (m *MongoClient) GetUsers(collection string) ([]types.User, error) {
+	var err error
+	ctx := context.Background()
+	coll, err := m.getCollection(collection)
+	if err != nil {
+		return nil, err
+	}
+	cursor, err := coll.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+
+	// find a way to return users xD
+	currentUser := types.User{}
+	users := []types.User{}
+	for cursor.Next(ctx) {
+		err = cursor.Decode(&currentUser)
 		if err != nil {
 			fmt.Println(err)
 			return nil, err
 		}
-
+		users = append(users, currentUser)
 	}
-	return nil, nil
+	return users, nil
 }
 
-func GetCollection(collection string) *mongo.Collection {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		panic(err.Error())
-	}
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
+func (m *MongoClient) DeleteUser(tableName string, user types.User) error {
+	return nil
+}
 
+func (m *MongoClient) getCollection(collection string) (*mongo.Collection, error) {
+	ctx := context.Background()
+	err := m.client.Connect(ctx)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
-	return client.Database("carlos").Collection(collection)
+	return m.client.Database(database).Collection(collection), nil
 }

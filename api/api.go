@@ -33,19 +33,19 @@ func (a *Api) getUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Api) createUser(w http.ResponseWriter, r *http.Request) {
-	user, err := a.Client.CreateUser("users")
+	var user types.User
+	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	//var user types.User
-	err = json.NewDecoder(r.Body).Decode(&user)
+	returnedUser, err := a.Client.CreateUser("users", user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	json.NewEncoder(w).Encode(user)
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(returnedUser)
 }
 
 func (a *Api) updateUser(w http.ResponseWriter, r *http.Request) {
@@ -54,19 +54,24 @@ func (a *Api) updateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	var user types.User
-	err = json.NewDecoder(r.Body).Decode(&user)
+	var toUpdate types.User
+	err = json.NewDecoder(r.Body).Decode(&toUpdate)
 	if err != nil {
 		fmt.Println(w, err.Error(), http.StatusBadRequest)
 	}
-	for index, item := range users {
-		if item.Id == user.Id {
-			users = append(users[:index], users[index+1:]...)
-			json.NewEncoder(w).Encode(item)
+	for _, user := range users {
+		if user.Id == toUpdate.Id {
+			// err := a.Client.UpdateUser("users", toUpdate)
+			// if err != nil {
+			// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+			// 	return
+			// }
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(user)
 			return
 		}
-		w.WriteHeader(http.StatusNotFound)
 	}
+	w.WriteHeader(http.StatusNotFound)
 }
 
 func (a *Api) deleteUser(w http.ResponseWriter, r *http.Request) {
@@ -75,18 +80,23 @@ func (a *Api) deleteUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	var user types.User
-	err = json.NewDecoder(r.Body).Decode(&user)
+	var toDelete types.User
+	err = json.NewDecoder(r.Body).Decode(&toDelete)
 	if err != nil {
 		fmt.Println(w, err.Error(), http.StatusBadRequest)
 	}
-	for index, item := range users {
-		if item.Id == user.Id {
-			users = append(users[:index], users[index+1:]...)
+	for _, user := range users {
+		if user.Id == toDelete.Id {
+			err := a.Client.DeleteUser("users", user)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			w.WriteHeader(http.StatusOK)
-			return
+			break
 		}
 	}
+
 	http.Error(w, "user not found", http.StatusNotFound)
 }
 
@@ -95,9 +105,9 @@ type Api struct {
 	Client database.DatabaseClient
 }
 
-func New() Api {
+func NewWithClient(client database.DatabaseClient) Api {
 	var a Api
-	a.Client = &database.MongoClient{}
+	a.Client = client
 	a.buildRouter()
 	return a
 }
@@ -114,5 +124,8 @@ func (a *Api) buildRouter() {
 	}).Methods("GET")
 
 	a.Router = router
+}
 
+func (a *Api) Listen(port string) error {
+	return http.ListenAndServe(port, a.Router)
 }
