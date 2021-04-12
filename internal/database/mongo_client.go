@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/CarlosRoGuerra/New_Api_Go/v1/pkg/types"
@@ -11,22 +12,21 @@ import (
 )
 
 type MongoClient struct {
-	OnGetUsers   func(collection string) ([]types.User, error)
-	OnInsertUser func(collection string) (types.User, error)
+	Collection string
+	Database   string
 }
 
 func (m *MongoClient) CreateUser(collection string) (types.User, error) {
-	if m.OnInsertUser != nil {
-		user := types.User{Id: "01", Name: "Carlos", Password: "456"}
-		ctx := context.Background()
-		coll := GetCollection("users")
-		_, nil := coll.InsertOne(ctx, user)
-		return types.User{}, nil
-	}
+	user := types.User{Id: "01", Name: "Carlos", Password: "456"}
+	ctx := context.Background()
+	coll := GetCollection("users")
+	_, nil := coll.InsertOne(ctx, user)
 	return types.User{}, nil
 }
 
-func (m *MongoClient) GetUsers(collection string) (user []types.User, err error) {
+func (m *MongoClient) GetUsers(collection string) ([]types.User, error) {
+	var users types.User
+	var err error
 	filter := bson.D{}
 	ctx := context.Background()
 	cur, err := GetCollection("users").Find(ctx, filter)
@@ -34,10 +34,12 @@ func (m *MongoClient) GetUsers(collection string) (user []types.User, err error)
 		return nil, err
 	}
 	for cur.Next(ctx) {
-		err = cur.Decode(&user)
+		err = cur.Decode(&users)
 		if err != nil {
+			fmt.Println(err)
 			return nil, err
 		}
+
 	}
 	return nil, nil
 }
