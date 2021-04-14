@@ -3,11 +3,13 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/CarlosRoGuerra/New_Api_Go/v1/pkg/types"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 const database = "carlos"
@@ -18,11 +20,17 @@ type MongoClient struct {
 }
 
 func NewDefaultMongoClient() (*MongoClient, error) {
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongohost))
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		return nil, err
 	}
-
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("connected to db")
 	return &MongoClient{client: client}, nil
 }
 
@@ -70,11 +78,6 @@ func (m *MongoClient) DeleteUser(tableName string, user types.User) error {
 }
 
 func (m *MongoClient) getCollection(collection string) (*mongo.Collection, error) {
-	ctx := context.Background()
-	err := m.client.Connect(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	return m.client.Database(database).Collection(collection), nil
 }
