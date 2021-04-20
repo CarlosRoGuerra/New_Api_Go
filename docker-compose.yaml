@@ -1,0 +1,17 @@
+version: "3.9"  
+services:   
+    goapi:
+        build: .
+        ports:
+         - "8888:8888"
+        links:
+         - mongo
+        environment: 
+            - MONGO_HOST=mongodb://mongo:27017
+            - MONGO_DATABASE=carlos
+            - PORT=8888
+    mongo:
+        image: mongo
+        ports: 
+            - "27017:27017"
+

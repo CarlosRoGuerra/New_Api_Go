@@ -6,8 +6,12 @@ ADD . /app
 
 WORKDIR /app
 
+RUN go mod download 
+
 RUN go build -o bin/main cmd/main.go
 
-EXPOSE 8000
+ENV PORT=8888
+
+EXPOSE ${PORT}
 
 CMD ["/app/bin/main"]
