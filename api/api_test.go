@@ -14,88 +14,67 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetUser(t *testing.T) {
-	a := &Api{Router: mux.NewRouter(), Client: &database.MockClient{
-		OnGetUsers: func(tableName string) ([]types.User, error) {
-			return []types.User{
+func TestGetUsers(t *testing.T) {
+
+	var tt = []struct {
+		name          string
+		expectedUsers []types.User
+		api           *Api
+		assertion     func(*testing.T, *http.Response, []types.User, error)
+	}{
+		{
+			name: "when user is found",
+			api: &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+				OnGetUsers: func(tableName string) ([]types.User, error) {
+					return []types.User{
+						{
+							Id:       "123",
+							Name:     "test",
+							Password: "456",
+						},
+					}, nil
+
+				},
+			}},
+			expectedUsers: []types.User{
 				{
 					Id:       "123",
 					Name:     "test",
 					Password: "456",
 				},
-			}, nil
-
-		},
-	}}
-	ts := httptest.NewServer(http.HandlerFunc(a.getUser))
-	defer ts.Close()
-
-	var tt = []struct {
-		name         string
-		body         *bytes.Buffer
-		expectedUser types.User
-		assertion    func(*testing.T, *http.Response, types.User, error)
-	}{
-		{
-			name: "when user is found",
-			expectedUser: types.User{
-				Id:       "123",
-				Name:     "test",
-				Password: "456",
 			},
-			body: func() *bytes.Buffer {
-				user := types.User{
-					Id: "123",
-				}
-				bbytes, _ := json.Marshal(user)
-				return bytes.NewBuffer(bbytes)
-			}(),
-			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
+			assertion: func(t *testing.T, resp *http.Response, expectedUsers []types.User, err error) {
 				assert.NoError(t, err)
-				var user types.User
-				err = json.NewDecoder(resp.Body).Decode(&user)
+				var users []types.User
+				err = json.NewDecoder(resp.Body).Decode(&users)
 				assert.NoError(t, err)
-				assert.Equal(t, expectedUser, user)
+				assert.Equal(t, expectedUsers, users)
 				assert.Equal(t, http.StatusOK, resp.StatusCode)
 			},
 		},
 		{
-			name: "when user not found",
-			body: func() *bytes.Buffer {
-				user := types.User{
-					Id: "000",
-				}
-				bbytes, _ := json.Marshal(user)
-				return bytes.NewBuffer(bbytes)
-			}(),
-			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, err error) {
+			name: "when no users are present",
+			api: &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+				OnGetUsers: func(tableName string) ([]types.User, error) {
+					return []types.User{}, nil
+				},
+			}},
+			expectedUsers: []types.User{},
+			assertion: func(t *testing.T, resp *http.Response, expectedUsers []types.User, err error) {
 				assert.NoError(t, err)
-				var user types.User
-				err = json.NewDecoder(resp.Body).Decode(&user)
-				assert.Error(t, err, "EOF")
-				assert.Equal(t, expectedUser, user)
-				assert.Equal(t, http.StatusNotFound, resp.StatusCode)
-			},
-		},
-		{
-			name: "when server receive gibberish",
-			body: func() *bytes.Buffer {
-				user := "ggff"
-				bbytes, _ := json.Marshal(user)
-				return bytes.NewBuffer(bbytes)
-			}(),
-			assertion: func(t *testing.T, resp *http.Response, expectedUser types.User, e error) {
-				assert.NoError(t, e)
-				body, err := ioutil.ReadAll(resp.Body)
+				var users []types.User
+				err = json.NewDecoder(resp.Body).Decode(&users)
 				assert.NoError(t, err)
-				assert.Equal(t, "json: cannot unmarshal string into Go value of type types.User\n", string(body))
-				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+				assert.Equal(t, expectedUsers, users)
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
 			},
 		},
 	}
 	for _, testcase := range tt {
-		resp, err := ts.Client().Post(ts.URL, "application/json", testcase.body)
-		testcase.assertion(t, resp, testcase.expectedUser, err)
+		ts := httptest.NewServer(http.HandlerFunc(testcase.api.getUsers))
+		defer ts.Close()
+		resp, err := ts.Client().Get(ts.URL)
+		testcase.assertion(t, resp, testcase.expectedUsers, err)
 	}
 }
 

@@ -10,26 +10,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (a *Api) getUser(w http.ResponseWriter, r *http.Request) {
+func (a *Api) getUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := a.Client.GetUsers("users")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	var user types.User
-	err = json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	for _, item := range users {
-		if item.Id == user.Id {
-			json.NewEncoder(w).Encode(item)
-			return
-		}
-	}
-	w.WriteHeader(http.StatusNotFound)
-
+	json.NewEncoder(w).Encode(users)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) createUser(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +102,7 @@ func NewWithClient(client database.DatabaseClient) Api {
 
 func (a *Api) buildRouter() {
 	router := mux.NewRouter()
-	router.HandleFunc("/users", a.getUser).Methods("GET")
+	router.HandleFunc("/users", a.getUsers).Methods("GET")
 	router.HandleFunc("/users", a.createUser).Methods("POST")
 	router.HandleFunc("/users/{id}", a.updateUser).Methods("PUT")
 	router.HandleFunc("/users", a.deleteUser).Methods("DELETE")
