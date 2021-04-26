@@ -6,6 +6,7 @@ type MockClient struct {
 	OnGetUsers   func(tableName string) ([]types.User, error)
 	OnCreateUser func(tableName string, user types.User) (types.User, error)
 	OnDeleteUser func(tableName string, user types.User) error
+	OnUpdateUser func(tableName string, user types.User) (types.User, error)
 }
 
 func (m *MockClient) GetUsers(tableName string) ([]types.User, error) {
@@ -27,4 +28,11 @@ func (m *MockClient) DeleteUser(tableName string, user types.User) error {
 		return m.OnDeleteUser(tableName, user)
 	}
 	return nil
+}
+
+func (m *MockClient) UpdateUser(tableName string, user types.User) (types.User, error) {
+	if m.OnDeleteUser != nil {
+		return m.OnUpdateUser(tableName, user)
+	}
+	return types.User{}, nil
 }

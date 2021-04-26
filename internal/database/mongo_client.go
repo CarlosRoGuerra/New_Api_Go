@@ -74,8 +74,42 @@ func (m *MongoClient) GetUsers(collection string) ([]types.User, error) {
 	return users, nil
 }
 
-func (m *MongoClient) DeleteUser(tableName string, user types.User) error {
+func (m *MongoClient) DeleteUser(collection string, user types.User) error {
+	var err error
+	ctx := context.Background()
+	filter := bson.M{"id": user.Id}
+	coll, err := m.getCollection(collection)
+	if err != nil {
+		return err
+	}
+	_, err = coll.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func (m *MongoClient) UpdateUser(collection string, user types.User) (types.User, error) {
+	var err error
+	ctx := context.Background()
+	filter := bson.M{"id": user.Id}
+	coll, err := m.getCollection(collection)
+	if err != nil {
+		return user, err
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"name":     user.Name,
+			"password": user.Password,
+		},
+	}
+	_, err = coll.UpdateOne(ctx, filter, update)
+
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
 }
 
 func (m *MongoClient) getCollection(collection string) (*mongo.Collection, error) {

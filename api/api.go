@@ -49,13 +49,13 @@ func (a *Api) updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, user := range users {
 		if user.Id == toUpdate.Id {
-			// err := a.Client.UpdateUser("users", toUpdate)
-			// if err != nil {
-			// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-			// 	return
-			// }
+			updateUser, err := a.Client.UpdateUser("users", toUpdate)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(user)
+			json.NewEncoder(w).Encode(updateUser)
 			return
 		}
 	}
