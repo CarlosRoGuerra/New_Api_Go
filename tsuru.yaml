@@ -1,0 +1,7 @@
+healthcheck:
+  path: /
+  scheme: http
+  method: GET
+  status: 200
+  use_in_router: true
+  match: .*WORKING.*

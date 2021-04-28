@@ -108,7 +108,7 @@ func (a *Api) buildRouter() {
 	router.HandleFunc("/users", a.deleteUser).Methods("DELETE")
 	router.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "WORKING")
+		fmt.Fprintf(w, "WORKING\n")
 	}).Methods("GET")
 
 	a.Router = router
