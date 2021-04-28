@@ -24,7 +24,7 @@ func TestGetUsers(t *testing.T) {
 	}{
 		{
 			name: "when user is found",
-			api: &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+			api: &Api{Server: &http.Server{Handler: mux.NewRouter()}, Client: &database.MockClient{
 				OnGetUsers: func(tableName string) ([]types.User, error) {
 					return []types.User{
 						{
@@ -54,7 +54,7 @@ func TestGetUsers(t *testing.T) {
 		},
 		{
 			name: "when no users are present",
-			api: &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+			api: &Api{Server: &http.Server{Handler: mux.NewRouter()}, Client: &database.MockClient{
 				OnGetUsers: func(tableName string) ([]types.User, error) {
 					return []types.User{}, nil
 				},
@@ -79,7 +79,7 @@ func TestGetUsers(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	a := &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+	a := &Api{Server: &http.Server{Handler: mux.NewRouter()}, Client: &database.MockClient{
 		OnGetUsers: func(tableName string) ([]types.User, error) {
 			return []types.User{
 				{
@@ -156,7 +156,7 @@ func TestCreateUser(t *testing.T) {
 			}, nil
 		},
 	}
-	a := &Api{Router: mux.NewRouter(), Client: mockClient}
+	a := &Api{Server: &http.Server{Handler: mux.NewRouter()}, Client: mockClient}
 
 	tp := httptest.NewServer(http.HandlerFunc(a.createUser))
 	defer tp.Close()
@@ -215,7 +215,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	a := &Api{Router: mux.NewRouter(), Client: &database.MockClient{
+	a := &Api{Server: &http.Server{Handler: mux.NewRouter()}, Client: &database.MockClient{
 		OnGetUsers: func(tableName string) ([]types.User, error) {
 			return []types.User{
 				{

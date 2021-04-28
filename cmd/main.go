@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/CarlosRoGuerra/New_Api_Go/v1/api"
 	"github.com/CarlosRoGuerra/New_Api_Go/v1/internal/database"
@@ -9,10 +11,18 @@ import (
 )
 
 func main() {
-	client, err := database.NewDefaultMongoClient()
-	if err != nil {
-		panic(err)
-	}
+	var client database.DatabaseClient
+	var err error
+	go func() {
+		for {
+			client, err = database.NewDefaultMongoClient()
+			if err == nil {
+				break
+			}
+			fmt.Printf("error creting database client: %s", err.Error())
+			time.Sleep(time.Second * 5)
+		}
+	}()
 	api := api.NewWithClient(client)
 	log.Fatal(api.Listen(":" + viper.GetString("port")))
 }

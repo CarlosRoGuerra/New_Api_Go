@@ -1,9 +1,15 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
 	"github.com/CarlosRoGuerra/New_Api_Go/v1/internal/database"
 	"github.com/CarlosRoGuerra/New_Api_Go/v1/pkg/types"
@@ -89,18 +95,29 @@ func (a *Api) deleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 type Api struct {
-	Router *mux.Router
-	Client database.DatabaseClient
+	sync.Mutex
+	Server          *http.Server
+	Client          database.DatabaseClient
+	shutdown        chan os.Signal
+	shutdownTimeout time.Duration
 }
 
-func NewWithClient(client database.DatabaseClient) Api {
+func (a *Api) buildServer() {
+	router := a.buildRouter()
+	a.Server = &http.Server{
+		Handler: router,
+	}
+	a.shutdownTimeout = time.Second * 10
+}
+
+func NewWithClient(client database.DatabaseClient) *Api {
 	var a Api
 	a.Client = client
-	a.buildRouter()
-	return a
+	a.buildServer()
+	return &a
 }
 
-func (a *Api) buildRouter() {
+func (a *Api) buildRouter() *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/users", a.getUsers).Methods("GET")
 	router.HandleFunc("/users", a.createUser).Methods("POST")
@@ -111,9 +128,22 @@ func (a *Api) buildRouter() {
 		fmt.Fprintf(w, "WORKING\n")
 	}).Methods("GET")
 
-	a.Router = router
+	return router
+}
+
+func (a *Api) handleSignals() {
+	a.shutdown = make(chan os.Signal)
+	signal.Notify(a.shutdown, os.Interrupt, syscall.SIGTERM)
+	<-a.shutdown
+	close(a.shutdown)
+	ctx, cancel := context.WithTimeout(context.Background(), a.shutdownTimeout)
+	defer cancel()
+	a.Server.Shutdown(ctx)
 }
 
 func (a *Api) Listen(port string) error {
-	return http.ListenAndServe(port, a.Router)
+	a.Server.Addr = port
+	fmt.Printf("Server starting at address: %s\n", a.Server.Addr)
+	go a.handleSignals()
+	return a.Server.ListenAndServe()
 }
