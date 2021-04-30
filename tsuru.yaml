@@ -1,5 +1,5 @@
 healthcheck:
-  path: /
+  path: /healthcheck
   scheme: http
   method: GET
   status: 200
