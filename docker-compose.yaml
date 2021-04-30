@@ -7,7 +7,7 @@ services:
         links:
          - mongo
         environment: 
-            - MONGO_HOST=mongodb://mongo:27017
+            - DBAAS_MONGODB_ENDPOINT=mongodb://mongo:27017
             - MONGO_DATABASE=carlos
             - PORT=8888
     mongo:

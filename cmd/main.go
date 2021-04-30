@@ -19,7 +19,7 @@ func main() {
 			if err == nil {
 				break
 			}
-			fmt.Printf("error creting database client: %s", err.Error())
+			fmt.Printf("error creating database client\n")
 			time.Sleep(time.Second * 5)
 		}
 	}()

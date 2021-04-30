@@ -21,7 +21,7 @@ type MongoClient struct {
 func NewDefaultMongoClient() (*MongoClient, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	mongoHost := viper.GetString("mongo_host")
+	mongoHost := viper.GetString("DBAAS_MONGODB_ENDPOINT")
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoHost))
 	if err != nil {
 		return nil, err
